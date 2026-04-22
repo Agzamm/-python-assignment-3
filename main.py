@@ -6,50 +6,92 @@ path = "/home/weltom/Documents/projects/practice /4/"
 output = "/home/weltom/Documents/projects/practice /4/output"
 file = "students.csv"
 
+class FileManager():
+	def __init__(self,file):
+		self.file = file
 
-def check_files():
-	if not os.path.exists(file):
-		print(file, "not found")
-		return False
-	print("File found: ", file)
+	def check_files(self):
+		if not os.path.exists(self.file):
+			print(file, "not found")
+			return False
+		print("File found: ", self.file)
 
-	if not os.path.exists(output):
-		print("Output folder dont created")
-		return False
-	print("Output folder exist")
-	print("Output folder: ", output)
+	def create_output_folder(self, folder='output'):
+		if not os.path.exists(output):
+			os.makedir(folder)
+			print(f"Output folder created: {folder}/")
+		else:
+			print(f"Output folder already exists: {folder}/")
 
-check_files()
 
-#task2
-with open(file, 'r', encoding='utf-8') as f:
-	r = csv.DictReader(f)
-	students = list(r)
+def load_data(filename):
+    try:
+        print("Loading data...")
+        with open(filename, 'r', encoding='utf-8') as f:
+            r = csv.DictReader(f)
+            students = list(r)
+        print(f"Data loaded successfully: {len(students)} students")
+        return students
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found. Please check the filename.")
+        return None
+    except Exception as e:
+        print(f"Error: An unexpected error occurred — {e}")
+        return None
 
-print("\n" + f"Total students: {len(students)}")
-print("First 5 rows")
+load_data(file)
+
+
+def preview_data(students, n):
+	print(f"First {n} rows")
+	print("-"*30)
+	for s in students[:n]:
+		print(f"{s['student_id']} | {s['age']} | {s['gender']} | {s['country']} | {s['GPA']}")
+	print("-"*30)
+
+preview_data(load_data(file), 5)
+
+
+def get_top_students(students, n=10):
+    top = []
+    sorted_students = sorted(students, key=lambda x: float(x['final_exam_score']), reverse=True)
+    for s in sorted_students[:n]:
+        try:
+            float(s['final_exam_score'])
+            float(s['GPA'])
+            top.append(s)
+        except ValueError:
+            print(f"Warning: could not convert value for student {s['student_id']} — skipping row.")
+            continue
+    return top
+
+students = load_data("students.csv")
+
+load_data("wrong_file.csv")
+
+get_top_students(load_data(file), 10)
+
+
 print("-"*30)
-for s in students[:5]:
-	print(f"{s['student_id']} | {s['age']} | {s['gender']} | {s['country']} GPA: {s['GPA']}")
+print("Lambda / Map / Filter")
+print("-"*30)
+top_scorers = list(filter(lambda s: float(s['final_exam_score']) > 95,load_data(file)))
+print(f"final_exam_score > 95  : {len(top_scorers)}")
+
+gpa_values = list(map(lambda s: float(s['GPA']), load_data(file)))
+print(f"GPA values (first 5)   : {gpa_values[:5]}")
+
+good_assignments = list(filter(lambda s: float(s['assignment_score']) > 90,load_data(file)))
+print(f"assignment_score > 90  : {len(good_assignments)}")
 print("-"*30)
 
-#task3
-sorted_students = sorted(students, key=lambda x: float(x['final_exam_score']), reverse=True)
-top10 = sorted_students[:10]
 
-print("\n" + "-" * 30)
-print("Top 10 Students by Exam Score")
-print("-" * 30)
-for i in range(len(top10)):
-    s = top10[i]
-    print(f"{i+1}. {s['student_id']} | {s['country']} | {s['major']} | Score: {float(s['final_exam_score'])} | GPA: {float(s['GPA'])}")
-print("-" * 30)
-#task4
+top10 = get_top_students(students, 10)
 
 x = {
 	"analysis": "Top 10 Students by Exam Score",
-	"total_students": len(students),
-	"top10": [
+	"total_students": len(file),
+	"top": [
 		{
 		"rank": i+1,
 		"student_id": top10[i]['student_id'],

@@ -1,7 +1,7 @@
 {
     "analysis": "Top 10 Students by Exam Score",
-    "total_students": 10000,
-    "top10": [
+    "total_students": 12,
+    "top": [
         {
             "rank": 1,
             "student_id": "S00001",

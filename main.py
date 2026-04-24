@@ -2,118 +2,144 @@ import os
 import csv
 import json
 
-path = "/home/weltom/Documents/projects/practice /4/"
-output = "/home/weltom/Documents/projects/practice /4/output"
-file = "students.csv"
 
-class FileManager():
-	def __init__(self,file):
-		self.file = file
+class FileManager:
+    def __init__(self, filename):
+        self.filename = filename
 
-	def check_files(self):
-		if not os.path.exists(self.file):
-			print(file, "not found")
-			return False
-		print("File found: ", self.file)
+    def check_file(self):
+        print("Checking file...")
+        if not os.path.exists(self.filename):
+            print(f"File not found: {self.filename}")
+            return False
+        print(f"File found: {self.filename}")
+        return True
 
-	def create_output_folder(self, folder='output'):
-		if not os.path.exists(output):
-			os.makedir(folder)
-			print(f"Output folder created: {folder}/")
-		else:
-			print(f"Output folder already exists: {folder}/")
-
-
-def load_data(filename):
-    try:
-        print("Loading data...")
-        with open(filename, 'r', encoding='utf-8') as f:
-            r = csv.DictReader(f)
-            students = list(r)
-        print(f"Data loaded successfully: {len(students)} students")
-        return students
-    except FileNotFoundError:
-        print(f"Error: File '{filename}' not found. Please check the filename.")
-        return None
-    except Exception as e:
-        print(f"Error: An unexpected error occurred — {e}")
-        return None
-
-load_data(file)
+    def create_output_folder(self, folder='output'):
+        print("Checking output folder...")
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+            print(f"Output folder created: {folder}")
+        else:
+            print(f"Output folder already exists: {folder}")
 
 
-def preview_data(students, n):
-	print(f"First {n} rows")
-	print("-"*30)
-	for s in students[:n]:
-		print(f"{s['student_id']} | {s['age']} | {s['gender']} | {s['country']} | {s['GPA']}")
-	print("-"*30)
+class DataLoader:
+    def __init__(self, filename):
+        self.filename = filename
+        self.students = []
 
-preview_data(load_data(file), 5)
-
-
-def get_top_students(students, n=10):
-    top = []
-    sorted_students = sorted(students, key=lambda x: float(x['final_exam_score']), reverse=True)
-    for s in sorted_students[:n]:
+    def load(self):
         try:
-            float(s['final_exam_score'])
-            float(s['GPA'])
-            top.append(s)
-        except ValueError:
-            print(f"Warning: could not convert value for student {s['student_id']} — skipping row.")
-            continue
-    return top
+            print("Loading data...")
+            with open(self.filename, 'r', encoding='utf-8') as f:
+                r = csv.DictReader(f)
+                self.students = list(r)
+            print(f"Data loaded successfully: {len(self.students)} students")
+            return self.students
+        except FileNotFoundError:
+            print(f"Error: File '{self.filename}' not found. Please check the filename.")
+            return []
+        except Exception as e:
+            print(f"Error: {e}")
+            return []
 
-students = load_data("students.csv")
+    def preview(self, n=5):
+        print(f"First {n} rows:")
+        print("-" * 30)
+        for s in self.students[:n]:
+            print(f"{s['student_id']} | {s['age']} | {s['gender']} | {s['country']} | GPA: {s['GPA']}")
+        print("-" * 30)
 
-load_data("wrong_file.csv")
 
-get_top_students(load_data(file), 10)
+class DataAnalyser:
+    def __init__(self, students):
+        self.students = students
+        self.result = {}
+
+    def analyse(self):
+        try:
+            sorted_students = sorted(
+                self.students,
+                key=lambda x: float(x['final_exam_score']),
+                reverse=True
+            )
+        except ValueError as e:
+            print(f"Warning: could not convert value — {e}")
+            sorted_students = []
+
+        top10 = sorted_students[:10]
+
+        self.result = {
+            "top_10_students": [
+                {
+                    "rank": i + 1,
+                    "student_id": s['student_id'],
+                    "country": s['country'],
+                    "major": s['major'],
+                    "final_exam_score": float(s['final_exam_score']),
+                    "gpa": float(s['GPA'])
+                }
+                for i, s in enumerate(top10)
+            ]
+        }
+        return self.result
+
+    def print_results(self):
+        print("-" * 30)
+        print("Top 10 Students by Exam Score")
+        print("-" * 30)
+        for entry in self.result["top_10_students"]:
+            print(
+                f"{entry['rank']}. {entry['student_id']} | {entry['country']} | "
+                f"{entry['major']} | Score: {entry['final_exam_score']} | GPA: {entry['gpa']}"
+            )
+        print("-" * 30)
 
 
-print("-"*30)
+class ResultSaver:
+    def __init__(self, result, output_path):
+        self.result = result
+        self.output_path = output_path
+
+    def save_json(self):
+        try:
+            with open(self.output_path, 'w', encoding='utf-8') as f:
+                json.dump(self.result, f, indent=4)
+            print(f"Result saved to {self.output_path}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
+
+
+fm = FileManager('students.csv')
+if not fm.check_file():
+    print('Stopping program.')
+    exit()
+fm.create_output_folder()
+
+dl = DataLoader('students.csv')
+dl.load()
+dl.preview()
+
+print("-" * 30)
 print("Lambda / Map / Filter")
-print("-"*30)
-top_scorers = list(filter(lambda s: float(s['final_exam_score']) > 95,load_data(file)))
+print("-" * 30)
+
+top_scorers = list(filter(lambda s: float(s['final_exam_score']) > 95, dl.students))
 print(f"final_exam_score > 95  : {len(top_scorers)}")
 
-gpa_values = list(map(lambda s: float(s['GPA']), load_data(file)))
+gpa_values = list(map(lambda s: float(s['GPA']), dl.students))
 print(f"GPA values (first 5)   : {gpa_values[:5]}")
 
-good_assignments = list(filter(lambda s: float(s['assignment_score']) > 90,load_data(file)))
+good_assignments = list(filter(lambda s: float(s['assignment_score']) > 90, dl.students))
 print(f"assignment_score > 90  : {len(good_assignments)}")
-print("-"*30)
+print("-" * 30)
 
+DataLoader("wrong_file.csv").load()
 
-top10 = get_top_students(students, 10)
+analyser = DataAnalyser(dl.students)
+analyser.analyse()
+analyser.print_results()
 
-x = {
-	"analysis": "Top 10 Students by Exam Score",
-	"total_students": len(file),
-	"top": [
-		{
-		"rank": i+1,
-		"student_id": top10[i]['student_id'],
-		"country": top10[i]['country'],
-		"major" : top10[i]['major'],
-		"final_exam_score" : top10[i]['final_exam_score'],
-		"GPA" : top10[i]['GPA']
-		}
-		for i in range(len(top10))
-	]
-}
-
-with open("output/x.json", "w", encoding='utf-8') as f:
-	json.dump(x, f, indent=4) 
-
-
- 
-print("\n" + "=" * 30)
-print("ANALYSIS RESULT")
-print("=" * 30)
-print(f"Analysis : Top 10 Students by Exam Score")
-print(f"Total students : {len(students)}")
-print("Top 10 saved to output/result.json")
-print("=" * 30)
-print("Result saved to output/result.json")
+saver = ResultSaver(analyser.result, 'output/result.json')
+saver.save_json()
